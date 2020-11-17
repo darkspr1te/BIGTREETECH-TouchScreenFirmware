@@ -323,6 +323,13 @@
 #define PROBE_OFFSET_DEFAULT_VALUE 0.0f
 
 /**
+ * Home Offset
+ */
+#define HOME_Z_OFFSET_MIN_VALUE     -20.0f
+#define HOME_Z_OFFSET_MAX_VALUE     20.0f
+#define HOME_Z_OFFSET_DEFAULT_VALUE 0.0f
+
+/**
  * Babystep
  */
 #define BABYSTEP_MIN_VALUE     -5.0f
@@ -357,6 +364,27 @@
 // Options:  0: Disabled    1: Enabled
 //
 #define MESH_LEFT_KEYBOARD 0
+
+/**
+ * Terminal settings
+ */
+
+// Enable keyboard color layout for the Terminal menu
+//
+// If standard, the keyboard is drawn using the standard configurable background and font colors.
+// If alternative, the keyboard is drawn using the alternative embedded colors (white and black colors).
+//
+// Options:  0: standard 1    1: standard 2    2: alternative
+//
+#define TERMINAL_KEYBOARD_COLOR_LAYOUT 0
+
+// Enable keyboard QWERTY layout for the Terminal menu with at least 10 columns
+//
+// If enabled, the QWERTY keyboard layout is used
+//
+// Options:  0: Disabled    1: Enabled
+//
+#define TERMINAL_KEYBOARD_QWERTY_LAYOUT 1
 
 /**
  * PID autotune

@@ -5,6 +5,7 @@
     "extra_flags": "-DSTM32F207xx",
     "f_cpu": "120000000L",
     "mcu": "stm32f207vct6",
+    "product_line": "STM32F103xE",
     "variant": "stm32f2"
   },
   "connectivity": [

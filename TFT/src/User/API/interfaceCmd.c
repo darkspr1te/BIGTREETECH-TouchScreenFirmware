@@ -111,12 +111,14 @@ void mustStoreScript(const char * format,...)
   char *p = script;
   uint16_t i = 0;
   char cmd[CMD_MAX_CHAR];
-  for (;;) {
+  for (;;)
+  {
     char c = *p++;
     if (!c) return;
     cmd[i++] = c;
 
-    if (c == '\n') {
+    if (c == '\n')
+    {
       cmd[i] = 0;
       mustStoreCmd("%s", cmd);
       i = 0;
@@ -235,7 +237,17 @@ void sendQueueCmd(void)
           break;
         case 18: //M18/M84 disable steppers
         case 84:
-          coordinateSetKnown(false);
+          if(cmd_seen('S') && !cmd_seen('Y') && !cmd_seen('Z') && !cmd_seen('E'))
+          {
+            // Do not mark coordinate as unknown in this case as this is a M18/M84 S<timeout>
+            // command that doesn't disable the motors right away but will set their idling
+            // timeout.
+          }
+          else
+          {
+            // This is something else than an "M18/M84 S<timeout>", this will disable at least one stepper, set coordinate as unknown
+            coordinateSetKnown(false);
+          }
           break;
 
 #ifdef SERIAL_PORT_2
@@ -387,7 +399,8 @@ void sendQueueCmd(void)
         case 29: //M29
           if (!fromTFT)
           {
-            storeCmd("M105\nM114\nM220\nM221\n");
+            mustStoreScript("M105\nM114\nM220\n");
+            storeCmd("M221 D%d\n",heatGetCurrentTool());
             ispolling = true;
           }
             break;
@@ -498,17 +511,34 @@ void sendQueueCmd(void)
           }
           break;
 
+        case 155: //M155
+          if (fromTFT)
+          {
+            heatSetUpdateWaiting(false);
+            if(cmd_seen('S'))
+            {
+              heatSyncUpdateSeconds(cmd_value());
+            }
+            else if (!cmd_seen('\n'))
+            {
+              char buf[12];
+              sprintf(buf, "S%u\n", heatGetUpdateSeconds());
+              strcat(infoCmd.queue[infoCmd.index_r].gcode, (const char*)buf);
+            }
+          }
+          break;
+
         case 106: //M106
         {
           uint8_t i = cmd_seen('P') ? cmd_value() : 0;
           if(cmd_seen('S') && fanIsType(i, FAN_TYPE_F) ) {
-            fanSetSpeed(i, cmd_value());
+            fanSetCurSpeed(i, cmd_value());
             fanSetSendWaiting(i, false);
           }
           else if (!cmd_seen('\n'))
           {
             char buf[12];
-            sprintf(buf, "S%u\n", fanGetSpeed(i));
+            sprintf(buf, "S%u\n", fanGetCurSpeed(i));
             strcat(infoCmd.queue[infoCmd.index_r].gcode,(const char*)buf);
           }
           break;
@@ -517,23 +547,17 @@ void sendQueueCmd(void)
         case 107: //M107
         {
           uint8_t i = cmd_seen('P') ? cmd_value() : 0;
-          if (fanIsType(i, FAN_TYPE_F)) fanSetSpeed(i, 0);
+          if (fanIsType(i, FAN_TYPE_F)) fanSetCurSpeed(i, 0);
           break;
         }
 
         case 710: //M710 Controller Fan
         {
           u8 i = 0;
-          if(cmd_seen('S')) {
-            i = fanGetTypID(i,FAN_TYPE_CTRL_S);
-            fanSetSpeed(i, cmd_value());
-            fanSetSendWaiting(i, false);
-          }
-          if(cmd_seen('I')) {
-            i = fanGetTypID(i=0,FAN_TYPE_CTRL_I);
-            fanSetSpeed(i, cmd_value());
-            fanSetSendWaiting(i, false);
-          }
+          if(cmd_seen('S')) i = fanGetTypID(i,FAN_TYPE_CTRL_S);
+          if(cmd_seen('I')) i = fanGetTypID(i=0,FAN_TYPE_CTRL_I);
+          fanSetCurSpeed(i, cmd_value());
+          fanSetSendWaiting(i, false);
           break;
         }
 
@@ -761,6 +785,14 @@ void sendQueueCmd(void)
             }
             break;
         #endif
+
+        #ifdef LOAD_UNLOAD_M701_M702
+          case 701:  // M701 Load filament
+          case 702:  // M702 Unload filament
+            infoHost.wait = true;
+            break;
+        #endif
+
         case 851: //M851 Z probe offset
           if(cmd_seen('X')) setParameter(P_PROBE_OFFSET, X_AXIS, cmd_float());
           if(cmd_seen('Y')) setParameter(P_PROBE_OFFSET, Y_AXIS, cmd_float());
@@ -859,17 +891,23 @@ void sendQueueCmd(void)
 
         case 92: //G92
         {
-          AXIS i;
           bool coorRelative = coorGetRelative();
           bool eRelative = eGetRelative();
           // Set to absolute mode
           coorSetRelative(false);
           eSetRelative(false);
-          for(i=X_AXIS;i<TOTAL_AXIS;i++)
+          for(AXIS i = X_AXIS; i < TOTAL_AXIS; i++)
           {
             if(cmd_seen(axis_id[i]))
             {
-              coordinateSetAxisTarget(i,cmd_float());
+              coordinateSetAxisTarget(i, cmd_float());
+              #ifdef FIL_RUNOUT_PIN
+                if (i == E_AXIS)
+                {
+                  // Reset SFS status, Avoid false Filament runout caused by G92 resetting E-axis position
+                  FIL_SFS_SetAlive(true);
+                }
+              #endif
             }
           }
           // Restore mode

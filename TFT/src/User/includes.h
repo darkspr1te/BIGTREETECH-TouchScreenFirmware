@@ -73,6 +73,7 @@
 #include "menu.h"
 #include "list_item.h"
 #include "list_widget.h"
+#include "common.h"
 #include "Popup.h"
 #include "Numpad.h"
 #include "Notification.h"
@@ -94,6 +95,7 @@
 
 #include "Babystep.h"
 #include "Extrude.h"
+#include "LoadUnload.h"
 #include "Fan.h"
 #include "SettingsMenu.h"
 #include "PrintingMenu.h"

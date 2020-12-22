@@ -163,10 +163,11 @@ void menuABL(void)
      {ICON_BACKGROUND,              LABEL_BACKGROUND},
      {ICON_BLTOUCH,                 LABEL_BLTOUCH},
      {ICON_BACKGROUND,              LABEL_BACKGROUND},
-     {ICON_BACKGROUND,              LABEL_BACKGROUND},
+     {ICON_HEAT,                    LABEL_PREHEAT},
      {ICON_BACK,                    LABEL_BACK}}
   };
 
+  bool heat = false;
   KEY_VALUES key_num = KEY_IDLE;
 
   switch (infoMachineSettings.leveling)
@@ -231,7 +232,17 @@ void menuABL(void)
         infoMenu.menu[++infoMenu.cur] = menuBLTouch;
         break;
 
+      case KEY_ICON_6:
+        infoMenu.menu[++infoMenu.cur] = menuPreheat;
+        heat = true;
+        break;
+
       case KEY_ICON_7:
+        if (heat == true)
+        {
+          heatCoolDown();
+          heat = false;
+        }
         infoMenu.cur--;
         break;
 
